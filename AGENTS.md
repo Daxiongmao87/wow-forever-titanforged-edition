@@ -6,8 +6,10 @@ Fork of [jaredgei/wow-forever-android](https://github.com/jaredgei/wow-forever-a
 
 ## State
 
-- Repo currently contains only `SPEC.md`. The upstream fork has not been cloned yet.
-- Upstream baseline: tag `v2.4.5` (aba66f9) and main at `83cdbc9` (2026-11-19). Start work from there.
+- Fork lives at `Daxiongmao87/wow-forever-titanforged-edition` (private, origin); upstream is remote `upstream`. Work branch: `titan-forged` (main = pristine upstream baseline 83cdbc9).
+- `.github/workflows/test-build.yml` builds the debug-signed release APK (`assembleModernRelease`, no keystore needed) on push to `titan-forged` and uploads artifact `wow-forever-titan-apk`. Trigger/watch with `gh run list` / `gh run download`.
+- Phase 1 launcher changes are implemented (Mali profile, wrapper-gamenative bundling, built-in-keyboard fix, fork applicationId `app.wowforever.titanforged`, versionName `2.4.6-titan1`). Phase 2 addon not started.
+- The `gh` token needed `gh auth refresh -h github.com -s workflow` once to allow pushing `.github/workflows/*` (done Nov 19 2026).
 - Phase 1 = Mali GPU profile in the launcher. Phase 2 = in-game addon `TitanForged` (keyboard -> gamepad-UI bindings). Phase 2 depends on the Phase 1 launcher keyboard fix (spec change 8).
 
 ## Build
