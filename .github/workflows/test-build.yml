@@ -60,10 +60,33 @@ jobs:
       - name: Write local.properties
         run: echo "sdk.dir=$ANDROID_HOME" > local.properties
 
+      # Stable fork signing key so builds can update each other (app/keystores/keystore.properties also switches
+      # the debug variant onto this key, per build.gradle.kts). Test key only — never the upstream release key.
+      - name: Set up test signing
+        env:
+          KEYSTORE_BASE64: ${{ secrets.TITAN_TEST_KEYSTORE_BASE64 }}
+          STORE_PASSWORD: ${{ secrets.TITAN_TEST_STORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.TITAN_TEST_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.TITAN_TEST_KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then echo "::error::TITAN_TEST_KEYSTORE_BASE64 is not set"; exit 1; fi
+          mkdir -p app/keystores
+          echo "$KEYSTORE_BASE64" | base64 -d > app/keystores/titan-test.jks
+          {
+            echo "storeFile=keystores/titan-test.jks"
+            echo "storePassword=$STORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > app/keystores/keystore.properties
+
       - name: Build
         run: |
           ./gradlew --no-daemon :app:assembleModernRelease
           ./gradlew --no-daemon :app:assembleModernDebug
+
+      - name: Remove signing files
+        if: always()
+        run: rm -rf app/keystores/titan-test.jks app/keystores/keystore.properties
 
       - name: Upload the APK
         uses: actions/upload-artifact@v4
