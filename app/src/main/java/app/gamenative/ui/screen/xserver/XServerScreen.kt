@@ -997,8 +997,9 @@ fun XServerScreen(
         val deviceIds = InputDevice.getDeviceIds()
         hasPhysicalKeyboard = deviceIds.any { id ->
             val device = InputDevice.getDevice(id) ?: return@any false
-            val isExternal = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) device.isExternal else true
-            Keyboard.isKeyboardDevice(device) && !device.isVirtual && isExternal
+            // Built-in keyboards count too: the Titan 2's QWERTY is not an external device, and hiding
+            // on-screen controls on it is the point of keyboard-only play.
+            Keyboard.isKeyboardDevice(device) && !device.isVirtual
         }
         hasPhysicalMouse = deviceIds.any { id ->
             val device = InputDevice.getDevice(id) ?: return@any false
@@ -1055,7 +1056,8 @@ fun XServerScreen(
         // Some devices advertise all its capabilities on onInputDeviceAdded callback
         // but some can also do basic advertise on onInputDeviceAdded and only expand on onInputDeviceChanged
         val isExternal = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) device.isExternal else true
-        if (!device.isVirtual && isExternal) {
+        // Built-in alphabetic keyboards (the Titan 2's QWERTY) count as physical keyboards too; mice stay external-only.
+        if (!device.isVirtual && (isExternal || Keyboard.isKeyboardDevice(device))) {
             if (Keyboard.isKeyboardDevice(device)) {
                 hasPhysicalKeyboard = true
                 if (!showElementEditor && !keepPausedForEditor && !showQuickMenu && !isEditMode &&
@@ -1070,7 +1072,7 @@ fun XServerScreen(
             val isMouse = device.supportsSource(InputDevice.SOURCE_MOUSE) ||
                     device.supportsSource(InputDevice.SOURCE_MOUSE_RELATIVE) ||
                     device.supportsSource(InputDevice.SOURCE_TOUCHPAD)
-            if (isMouse) {
+            if (isMouse && isExternal) {
                 hasPhysicalMouse = true
                 if (!hasUpdatedScreenGamepad && tryCapturePointer()) {
                     hasUpdatedScreenGamepad = true

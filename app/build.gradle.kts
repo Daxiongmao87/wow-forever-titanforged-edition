@@ -38,15 +38,15 @@ android {
     }
 
     defaultConfig {
-        applicationId = "app.wowforever"
+        applicationId = "app.wowforever.titanforged"
 
         minSdk = 26
 
         manifestPlaceholders["screenOrientation"] = "unspecified"
         buildConfigField("boolean", "XR_BUILD", "false")
 
-        versionCode = 251
-        versionName = "2.4.6-rc3"
+        versionCode = 252
+        versionName = "2.4.6-titan1"
 
         buildConfigField("boolean", "GOLD", "false")
         val iconValue = "@mipmap/ic_launcher"

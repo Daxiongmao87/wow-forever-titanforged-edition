@@ -1196,15 +1196,38 @@ private fun Throwable.isPermissionDenied() =
 
 private const val DEFAULT_DRIVER = "Turnip-WoW-scheduler-test"
 private const val ADRENO_8XX_DRIVER = "Turnip-V32-RP6sched"
+private const val MALI_DRIVER = "System"
+private const val WRAPPER_ADRENO = "Wrapper"
+private const val WRAPPER_GAMENATIVE = "wrapper-gamenative"
+private const val WRAPPER_GAMENATIVE_ASSET = "wrapper-gamenative-20260724.tzst"
 private const val PROTON_VERSION = "proton-11.0-90624-arm64ec"
 private const val DXVK_VERSION = "2.4.1-wow-aarch64-test"
 
-private data class GpuProfile(val driver: String, val tuDebug: String, val screenSize: String, val label: String, val edition: String) {
+// Mali has no Turnip driver, so its profile runs DXVK on the phone's own Vulkan driver through GameNative's
+// wrapper. DXVK 2.4.1 requires nullDescriptor and robustBufferAccess2, which Mali drivers do not report; if
+// device creation fails, set MALI_DXVK_VERSION to "async-1.10.3" (dxwrapper_download.json id
+// "dxvk-async-1.10.3"), GameNative's non-Adreno default. See SPEC.md Phase 1, change 7.
+private const val MALI_DXVK_VERSION = DXVK_VERSION
+
+private data class GpuProfile(
+    val driver: String,
+    val tuDebug: String,
+    val screenSize: String,
+    val label: String,
+    val edition: String,
+    val graphicsDriver: String = WRAPPER_ADRENO,
+    val dxvkVersion: String = DXVK_VERSION,
+) {
+    val usesTurnip: Boolean get() = graphicsDriver == WRAPPER_ADRENO
+
     companion object {
-        fun detect(context: Context) = if (isAdreno8xxDevice(context)) {
-            GpuProfile(ADRENO_8XX_DRIVER, "noconform,sysmem", "1280x720", "Adreno 8xx", "Snapdragon 8 Elite / Adreno 8xx")
-        } else {
-            GpuProfile(DEFAULT_DRIVER, "noconform", "1920x1080", "Adreno 740", "Snapdragon 8 Series / Adreno 740")
+        fun detect(context: Context) = when {
+            GPUInformation.getRenderer(context)?.contains("Mali", ignoreCase = true) == true ->
+                GpuProfile(MALI_DRIVER, "", "1280x720", "Mali-G615", "Unihertz Titan 2", WRAPPER_GAMENATIVE, MALI_DXVK_VERSION)
+            isAdreno8xxDevice(context) ->
+                GpuProfile(ADRENO_8XX_DRIVER, "noconform,sysmem", "1280x720", "Adreno 8xx", "Snapdragon 8 Elite / Adreno 8xx")
+            else ->
+                GpuProfile(DEFAULT_DRIVER, "noconform", "1920x1080", "Adreno 740", "Snapdragon 8 Series / Adreno 740")
         }
 
         private fun isAdreno8xxDevice(context: Context): Boolean {
@@ -1243,6 +1266,7 @@ internal fun fitScreenSize(baseSize: String, windowWidth: Int, windowHeight: Int
 
 private fun prepareLaunch(context: Context, gameRoot: File, gpu: GpuProfile, screenSize: String, onStatus: (String) -> Unit): String {
     installBundledComponents(context, onStatus)
+    if (BuildConfig.DEBUG) File(gameRoot, "dxvk-logs").mkdirs()
 
     check(File(gameRoot, BUILD_INFO).exists()) { "Missing $BUILD_INFO in $gameRoot. Copy it from your WoW install." }
     try {
@@ -1288,23 +1312,32 @@ private fun prepareLaunch(context: Context, gameRoot: File, gpu: GpuProfile, scr
 }
 
 private fun containerConfig(gameRoot: File, gpu: GpuProfile, screenSize: String, identity: WowMachineIdentity): JSONObject {
-    val samsungEnv = if (Build.MANUFACTURER.equals("samsung", ignoreCase = true)) " FD_DEV_FEATURES=enable_tp_ubwc_flag_hint=1" else ""
-    val envVars = "WRAPPER_MAX_IMAGE_COUNT=0 ZINK_DESCRIPTORS=lazy ZINK_DEBUG=compact,deck_emu MESA_SHADER_CACHE_DISABLE=false MESA_SHADER_CACHE_MAX_SIZE=512MB mesa_glthread=true WINEESYNC=0 MESA_VK_WSI_PRESENT_MODE=mailbox TU_DEBUG=${gpu.tuDebug} VKD3D_SHADER_MODEL=6_0 PULSE_LATENCY_MSEC=144 ${WowMachineIdentity.HOSTNAME_ENV}=${identity.computerName}$samsungEnv"
+    // The debug DXVK log lands in a folder on G:, the game drive, so a file manager can open it without adb.
+    val debugDxvkLog = if (BuildConfig.DEBUG) " DXVK_LOG_LEVEL=info DXVK_LOG_PATH=G:\\dxvk-logs" else ""
+    val samsungEnv = if (gpu.usesTurnip && Build.MANUFACTURER.equals("samsung", ignoreCase = true)) " FD_DEV_FEATURES=enable_tp_ubwc_flag_hint=1" else ""
+    val tuDebugEnv = if (gpu.tuDebug.isEmpty()) "" else "TU_DEBUG=${gpu.tuDebug} "
+    val envVars = "WRAPPER_MAX_IMAGE_COUNT=0 ZINK_DESCRIPTORS=lazy ZINK_DEBUG=compact,deck_emu MESA_SHADER_CACHE_DISABLE=false MESA_SHADER_CACHE_MAX_SIZE=512MB mesa_glthread=true WINEESYNC=0 MESA_VK_WSI_PRESENT_MODE=mailbox ${tuDebugEnv}VKD3D_SHADER_MODEL=6_0 PULSE_LATENCY_MSEC=144 ${WowMachineIdentity.HOSTNAME_ENV}=${identity.computerName}$samsungEnv$debugDxvkLog"
+    // The Mali profile's version=System skips adrenotools so the system Vulkan driver loads, and asks for
+    // compute BCn emulation, which Mali needs because its driver has no BCn texture support.
+    val driverConfig = if (gpu.usesTurnip)
+        "version=${gpu.driver},adrenotoolsTurnip=1,resourceType=buffer,bcnEmulation=auto,quality=high"
+    else
+        "version=${gpu.driver},bcnEmulation=auto,bcnEmulationType=compute,resourceType=buffer"
     return JSONObject().apply {
         put("id", CONTAINER_ID)
         put("name", "WoW Forever")
         put("screenSize", screenSize)
         put("envVars", envVars)
-        put("graphicsDriver", "Wrapper")
+        put("graphicsDriver", gpu.graphicsDriver)
         put("graphicsDriverVersion", gpu.driver)
-        put("graphicsDriverConfig", "version=${gpu.driver},adrenotoolsTurnip=1,resourceType=buffer,bcnEmulation=auto,quality=high")
+        put("graphicsDriverConfig", driverConfig)
         put("displayRenderer", "vulkan")
-        put("dxwrapper", "dxvk-$DXVK_VERSION-1")
-        put("dxwrapperConfig", "version=$DXVK_VERSION-1")
+        put("dxwrapper", "dxvk-${gpu.dxvkVersion}-1")
+        put("dxwrapperConfig", "version=${gpu.dxvkVersion}-1")
         put("wineVersion", "$PROTON_VERSION-1")
         put("containerVariant", "bionic")
         put("fexcoreVersion", "2609-0")
-        put("drives", "D:/storage/emulated/0/DownloadE:/data/data/app.wowforever/storageG:${gameRoot.path}")
+        put("drives", "D:/storage/emulated/0/DownloadE:/data/data/app.wowforever.titanforged/storageG:${gameRoot.path}")
         put("executablePath", "G:\\$FLAVOR_DIR\\$EXE_NAME")
         put("execArgs", "-d3d11")
         put("showFPS", true)
@@ -1402,6 +1435,7 @@ private fun portalOf(root: File) =
 private fun installBundledComponents(context: Context, onStatus: (String) -> Unit) {
     installDriver(context, DEFAULT_DRIVER, "turnip-wow-scheduler-test.zip", onStatus)
     installDriver(context, ADRENO_8XX_DRIVER, "turnip-V32-RP6sched.zip", onStatus)
+    installWrapperGamenative(context, onStatus)
 
     val protonDir = File(ImageFs.getSharedProtonDir(context), PROTON_VERSION)
     if (!File(protonDir, "profile.json").exists() || !File(protonDir, "bin/wine").exists()) {
@@ -1430,6 +1464,24 @@ private fun installDriver(context: Context, driverName: String, assetZip: String
     driverDir.mkdirs()
     if (!FileUtils.extractZipFromAssets(context, "bundled_components/$assetZip", driverDir)) {
         Timber.e("Error extracting driver $driverName from $assetZip")
+    }
+}
+
+// The Mali profile's graphicsDriver (wrapper-gamenative) is downloaded from GameNative's CDN on first use,
+// which fails without internet. Pre-seed the driver cache (GraphicsDriverDownloader.GRAPHICS_DRIVER_CACHE_DIR)
+// with the bundled copy so the download is skipped.
+private fun installWrapperGamenative(context: Context, onStatus: (String) -> Unit) {
+    val cacheFile = File(context.filesDir, "assets/graphics_driver/$WRAPPER_GAMENATIVE_ASSET")
+    if (cacheFile.exists() && cacheFile.length() > 0) return
+    onStatus("Installing the GameNative graphics wrapper...")
+    try {
+        cacheFile.parentFile?.mkdirs()
+        context.assets.open("bundled_components/$WRAPPER_GAMENATIVE_ASSET").use { input ->
+            cacheFile.outputStream().use { output -> input.copyTo(output) }
+        }
+    } catch (e: Exception) {
+        cacheFile.delete()
+        Timber.e(e, "Error installing bundled $WRAPPER_GAMENATIVE_ASSET; first use will need internet to download it")
     }
 }
 
