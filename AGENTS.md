@@ -33,7 +33,7 @@ Fork of [jaredgei/wow-forever-android](https://github.com/jaredgei/wow-forever-a
 - Bind only via `SetOverrideBinding` on the addon's own frame; **never overwrite Blizzard `GAMEPAD_*` globals** (taints secure code).
 - Apply bindings out of combat only; re-apply on `PLAYER_REGEN_ENABLED` and `UPDATE_BINDINGS` (hidden `InputFunctionBindingButton_<key>` buttons are created lazily by Blizzard).
 - Ship as a zip installed via the launcher's Add-on button. The `.toc` interface number is **not** `0` (Blizzard tocs ship `## Interface: 0`); get the real value in game: `/dump select(4, GetBuildInfo())`.
-- Key map and design rationale: spec "Proposed key map" table; single table in saved variables, editable via `/tfe`.
+- Key map (final, incl. journey walkthroughs and implementation split addon-vs-APK): spec "Key map" table; single table in saved variables, editable via `/tfe`; addon also renders a help panel from that table (default toggle F). Phase 2 design is settled; implementation not started and gated on in-world login testing.
 
 ## Verification
 

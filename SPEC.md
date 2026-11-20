@@ -68,7 +68,7 @@ Phase 1 adds a third GPU profile that runs DXVK on the phone's own Mali Vulkan d
 
 ### Acceptance criteria
 
-- [ ] On the Titan 2, Play reaches character select, then the game world, with no driver error. (Login screen now renders correctly, titan19 pending world test.)
+- [ ] On the Titan 2, Play reaches character select, then the game world, with no driver error. (Login screen renders correctly as of v2.4.6-titan20, released; world test pending a login.)
 - [ ] The world renders without missing or corrupt textures in two starting zones and one city.
 - [ ] 30 minutes of questing without a crash or device-lost error.
 - [ ] FPS from the in-app performance overlay recorded at 960x960 and at a lower budget (target to be set from these numbers).
@@ -86,7 +86,7 @@ Phase 2 is an addon, TitanForged, that binds Titan 2 keys to WoW Forever's own g
 4. Named gamepad commands (`GAMEPADACTIONBUTTON1`-`8`, `GAMEPADLEFTMOD`, `GAMEPADRIGHTMOD`, `OPENRADIAL`, `TOGGLEUIFOCUS`) are ordinary bindings in the `GamepadModeInGameCore` context (`Blizzard_Gamepad/Bindings.xml`, `Blizzard_GamepadActionBars/Bindings.xml`), measured. The addon binds keys to them directly.
 5. UI navigation listens on controller key names such as `PADDLEFT` and `PAD1` (`GamepadConstants.lua`), measured. Each routes through a hidden button named `InputFunctionBindingButton_<key>` whose click handler Blizzard swaps per screen (`InputFunctionBinding.lua`), measured. The addon binds a Titan key to click that button, so the key always does what that pad button does on the current screen.
 
-### Proposed key map
+### Key map (final)
 
 The map lives in one table in the addon's saved variables, editable through `/tfe`. Twitch actions sit on the two aligned right-hand rows; the whole bottom row is the UI-navigation strip, split by the centered spacebar. Titan 2 hardware notes (measured, product photo + on-device): dedicated `sym`/`fn`/`alt` keys on the function row, space between V and B, enter and backspace are physical keys, digits and `/` only on the sym layer, and **the sym key delivers nothing to apps**.
 
@@ -133,6 +133,9 @@ With Shift and Alt layers, the action bar reaches 24 slots from 8 keys. Bindings
 - [ ] A full quest loop (accept, travel, kill, loot, turn in, vendor) runs without touching the screen.
 - [ ] Bindings survive a /reload and a combat session.
 - [ ] Disabling the addon returns the default keybinds.
+- [ ] Typing a sentence with punctuation in chat works mid-map; Enter-Enter closes the box; movement and bar keys stay silent while typing.
+- [ ] The help panel (F by default) renders the live saved-vars map and toggles without a GCD.
+- [ ] Bags open from a dedicated key once PAD3's role is confirmed in the forever build (gap from the UI journey).
 
 ### Journey walkthroughs (desk sim)
 
@@ -151,13 +154,13 @@ UI navigation (bags, vendor, quest turn-in, corpse run):
 
 Chat:
 1. `Enter` opens the edit box; all bindings are suppressed while it has focus, so the full QWERTY types.
-2. Digits, `!`, `/` come from the sym layer combos.
+2. Digits, `!`, `/` come from the sym layer combos — **pending the sym-combo check** (open unknowns; sym alone is dead).
 3. `Enter` sends; `Enter` again on the empty box closes it (WoW default), so chat needs no Escape. Hardware back stays app-level — `MainActivity.kt:224` consumes it for launcher navigation/session exit (measured). B/N are bindings, suppressed during text entry, so they cannot close the box. A Titan-remapped ESC key would be a bonus for menus, not a requirement.
 4. Channels via `sym+/` then `s`/`g`/`p`.
 
 ## Measurements and open unknowns
 
-The keyboard registers 23 keys held at once, so key count limits no layout. Phase 2 still has three open checks.
+The keyboard registers 23 keys held at once, so key count limits no layout. Phase 2 still has open checks.
 
 | Item | Result | Label |
 | --- | --- | --- |
@@ -171,6 +174,7 @@ Open checks:
 - [ ] Space reaches apps. The rollover log contained no Space events; whether Space was pressed in that run is unconfirmed.
 - [ ] Shift and Alt reach apps as modifiers. The log had no Shift or Alt events.
 - [x] Sym reaches apps as Tab after reprogramming. It does not: the sym key produces no keycode apps can see (measured, Nov 20 2026); targeting moved to the P key.
+- [ ] Do sym+key **combos** (sym+1 → `1`, sym+/ → `/`) deliver symbols and digits, or is the whole sym layer dead? Sym alone is dead (above), but layer combos may be firmware-level like Fn. If dead, chat commands and digits cannot be typed at all — fallback would be the launcher's on-screen keyboard or paste via `termux`/clipboard. This gates the chat journey.
 - [ ] Fn reprogrammed to Ctrl delivers real Ctrl to apps. Not yet checked.
 - [ ] DXVK 2.4.1 accepts the Mali driver through `Wrapper-gamenative`. Leegao's survey found Mali drivers report no `nullDescriptor` or `robustBufferAccess2`, which DXVK requires (sourced, [driver survey](https://gist.github.com/leegao/aab7d63423bfd43f7328430fe32d225e), [DXVK driver support](https://github.com/doitsujin/dxvk/wiki/Driver-support)). Whether the wrapper hides that gap is a guess.
 - [ ] The game's interface style stays on gamepad while keyboard keys are pressed. The Lua side only switches on the `InputDeviceInterfaceStyle` CVar (`Blizzard_SettingsDefinitions_Shared/Gamepad.lua:285`), measured; the engine side is unseen.
