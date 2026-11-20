@@ -43,7 +43,7 @@ Phase 1 adds a third GPU profile that runs DXVK on the phone's own Mali Vulkan d
 
 1. **Mali detection.** Add a Mali branch to `GpuProfile.detect()`, triggered by `GPUInformation.getRenderer(context)` containing "Mali". That helper already exists and is used the same way at `XServerScreen.kt:4771` and `BionicProgramLauncherComponent.java:267` (measured).
 2. **Profile fields.** Extend `GpuProfile` with the container's `graphicsDriver` value. Mali gets `Wrapper-gamenative`, which upstream GameNative picks for non-Adreno GPUs (`ContainerUtils.kt:81-82`, measured). It also gets driver version `System`, which skips adrenotools so the system Vulkan driver loads (`XServerScreen.kt:4782`, measured).
-3. **Driver config.** For Mali, `containerConfig()` writes `version=System,bcnEmulation=auto,bcnEmulationType=compute,resourceType=buffer`. Compute BCn decoding is only excluded for Adreno and Xclipse GPUs (`XServerScreen.kt:4826`, measured). Mali lacks BCn texture support on every surveyed driver (sourced, [leegao's DXVK 2.0 driver survey](https://gist.github.com/leegao/aab7d63423bfd43f7328430fe32d225e)).
+3. **Driver config.** For Mali, `containerConfig()` writes `version=System,bcnEmulation=auto,bcnEmulationType=compute,resourceType=buffer`. Compute BCn decoding is only excluded for Adreno and Xclipse GPUs (`XServerScreen.kt:4826`, measured). Mali lacks BCn texture support on every surveyed driver (sourced, [leegao's DXVK 2.0 driver survey](https://gist.github.com/leegao/aab7d63423bfd43f7328430fe32d225e)). The config shipped on the device adds `bcnEmulationCache=0,transcoder=cpu,quality=high` (measured, titan9–titan19); see Field findings — the BCn layer, not these wrapper knobs, is what makes textures correct.
 4. **Environment.** Drop `TU_DEBUG` and the Samsung `FD_DEV_FEATURES` flag for Mali; they only apply to Turnip.
 5. **Bundle the wrapper.** `wrapper-gamenative` is downloaded from GameNative's CDN on first boot (`graphics_driver_download.json`), and boot fails without internet (`XServerScreen.kt:4764-4767`), measured. Bundle it in `assets/bundled_components` like the Turnip zips, and pin its sha256 in `tools/components.sha256`.
 6. **Resolution.** Mali defaults to the 1280x720 pixel budget. `fitScreenSize()` already reshapes that to 960x960 on the 1:1 screen (measured, by the function's math).
@@ -56,9 +56,19 @@ Phase 1 adds a third GPU profile that runs DXVK on the phone's own Mali Vulkan d
 - `DXVKHelper.setEnvVars()` forces `DXVK_LOG_LEVEL=none` (`DXVKHelper.java:21`), measured. The debug build sets `DXVK_LOG_LEVEL=info` and `DXVK_LOG_PATH` to a folder on the game drive (G:, the install folder), so the user can open the log with a file manager, no adb.
 - The DXVK log names any Vulkan feature or extension it rejects at device creation. That answers the main Phase 1 unknown on the first launch.
 
+### Field findings on the Titan 2 (titan8–titan19 builds)
+
+- **`WRAPPER_NO_PATCH_OPCONSTCOMP=1` is mandatory on Mali.** Without it the wrapper's SPIR-V `OPConstantComposite` patch pass native-AVs while patching DXVK's compiled shaders; the guest then aborts on the `vkCreateShaderModule` / `vkCreateComputePipelines` asserts in `loader_thunks.c`. Upstream ships this same escape hatch for the `dxvk-1.11.1-sarek` profile (`XServerScreen.kt:4713`), measured; Bannerlator's Mali report reaches the same conclusion independently (sourced).
+- **`WRAPPER_DISABLE_PLACED=1` fixes dynamic-texture corruption.** With it the intro cinematics and launcher UI render pixel-perfect (measured, screen capture).
+- **The wrapper's built-in BCn transcoder is unusable on Mali.** Every knob matrix (`bcnEmulation=auto|full`, `bcnEmulationType=cpu|gpu`, `WRAPPER_BCN_ASTC=0|4x4`, cache on/off) produced noisy mosaic textures, and with the BCn layer removed the bootstrapper hangs at "Launching game..." (>20 min, t16/t17). The compute BCn **layer** is required, measured.
+- **BCn layer works when actually loaded.** `VK_LAYER_BCN_BCnLayer` (`libbcn_layer.so`, Fcharan build from `The412Banner/WinlatorMali` `app/src/main/assets/graphics_driver/leegao_bcn.tzst`) with `ENABLE_BCN_COMPUTE=1` + `BCN_TRANSCODE_TO_ASTC=1` renders the login scene correctly (measured, titan18 watermark test: every BCn texture watermark-marked, scene geometry and lava/statue textures clean).
+- **The loader's implicit-layer scan misses the shipped manifest.** It scans `<rootDir>/usr/etc/vulkan/implicit_layer.d`, which the imagefs does not ship (`I replace: rewrite (openat)` log lines, measured). Fix in code: `VK_ADD_IMPLICIT_LAYER_PATH=<rootDir>/usr/share/vulkan/implicit_layer.d` when the layer is enabled (titan19).
+- **`BCN_ADD_WATERMARK=1`** stamps layer-decoded textures — a clean way to distinguish "layer not loaded" (plain noise) from "layer decoded it" (watermark). `BCN_LAYER_LOG_LEVEL=info` produced no visible stderr output (measured, unexplained).
+- Container env precedence: `XServerScreen` `envVars.put()` calls override tokens in the launcher's `envVars` string, and `files/imagefs/home/xuser-wow_forever/.container` is rewritten from the GPU profile on every app start — runtime edits of it never survive (measured).
+
 ### Acceptance criteria
 
-- [ ] On the Titan 2, Play reaches character select, then the game world, with no driver error.
+- [ ] On the Titan 2, Play reaches character select, then the game world, with no driver error. (Login screen now renders correctly, titan19 pending world test.)
 - [ ] The world renders without missing or corrupt textures in two starting zones and one city.
 - [ ] 30 minutes of questing without a crash or device-lost error.
 - [ ] FPS from the in-app performance overlay recorded at 960x960 and at a lower budget (target to be set from these numbers).
