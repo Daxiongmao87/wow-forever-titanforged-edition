@@ -50,6 +50,7 @@ Phase 1 adds a third GPU profile that runs DXVK on the phone's own Mali Vulkan d
 7. **DXVK fallback.** Keep DXVK `2.4.1-wow-aarch64-test` as the first choice. If device creation fails on Mali, switch the Mali profile to `dxvk-async-1.10.3`, which is in this fork's `dxwrapper_download.json` and is upstream GameNative's non-Adreno default (`ContainerUtils.kt:83`), measured. Whether the WoW Forever client accepts DXVK 1.10.x is a guess.
 8. **Launcher keyboard fix.** Count a built-in, non-virtual alphabetic keyboard as a physical keyboard. Today only external keyboards count (`XServerScreen.kt:998-1002`, `1058`), measured, so on-screen controls show on the Titan 2. This ships in Phase 1 because it is launcher code and harmless elsewhere.
 9. **README.** Add the Titan 2 to the supported-devices table and Mali to Requirements. Give the fork its own applicationId, so it installs beside upstream despite a different signing key.
+10. **Sym key to Tab.** `Keyboard.java` drops `KEYCODE_SYM`; map it to the X Tab keysym so the Titan `sym` key delivers Tab to the game (measured: sym sends `KEYCODE_SYM`, browsers see it; the launcher's map has no entry). Harmless elsewhere — no other supported device ships a KEYCODE_SYM key.
 
 ### Debug build
 
@@ -88,7 +89,7 @@ Phase 2 is an addon, TitanForged, that binds Titan 2 keys to WoW Forever's own g
 
 ### Key map (final)
 
-The map lives in one table in the addon's saved variables, editable through `/tfe`. Twitch actions sit on the two aligned right-hand rows; the whole bottom row is the UI-navigation strip, split by the centered spacebar. Titan 2 hardware notes (measured, product photo + on-device): dedicated `sym`/`fn`/`alt` keys on the function row, space between V and B, enter and backspace are physical keys, digits and `/` live on the symbol layer which **alt triggers, not sym** (measured), and the sym key alone does nothing.
+The map lives in one table in the addon's saved variables, editable through `/tfe`. Twitch actions sit on the two aligned right-hand rows; the whole bottom row is the UI-navigation strip, split by the centered spacebar. Titan 2 hardware notes (measured Nov 20 2026, browser keyprobe + product photo): dedicated `sym`/`fn`/`alt` keys on the function row; `sym` is **live** — it sends `KEYCODE_SYM`, which browsers show as key "Symbol"/keyCode 0 and the launcher's `Keyboard.java` currently drops; `alt` is right Alt (AltGraph); `fn` is system Home and never reaches apps (unusable); space reaches apps; digits/symbols come from the **alt+key** Android keymap (alt+W types `1` via the IME path); the sym key alone types nothing.
 
 | Action | Titan key | Bound to |
 | --- | --- | --- |
@@ -96,16 +97,16 @@ The map lives in one table in the addon's saved variables, editable through `/tf
 | Turn left / right | A / D | `TURNLEFT` / `TURNRIGHT` |
 | Strafe left / right | Q / E | `STRAFELEFT` / `STRAFERIGHT` |
 | Jump | Space (mid-board, either thumb) | `JUMP` |
-| Target nearest enemy | P (right pinky) | `TARGETNEARESTENEMY` |
+| Target nearest enemy | Sym (launcher maps `KEYCODE_SYM` to X Tab — launcher change 10) | `TARGETNEARESTENEMY` |
 | Interact | M (right thumb, next to space) | `INTERACTTARGET` |
 | Gamepad action bar 1-8 | Y U I O / H J K L | `GAMEPADACTIONBUTTON1`-`8` |
 | Bar layer 2 / layer 3 | Shift / Alt (held) | `GAMEPADLEFTMOD` / `GAMEPADRIGHTMOD` |
-| Spare ability or macro | G (F free too) | user choice |
+| Spare ability or macro | G / P (both free) | user choice |
 | UI focus on / off | T | `TOGGLEUIFOCUS` |
 | Radial menu | R | `OPENRADIAL` |
 | UI left / down / up / right | Z / X / C / V | click `InputFunctionBindingButton_PADDLEFT` / `PADDDOWN` / `PADDUP` / `PADDRIGHT` |
+| Rare binds (4th layer) | Shift+Alt stacked (`ALT-SHIFT-key`) | utility/stance/macro binds |
 | UI confirm / back | B / N | click `InputFunctionBindingButton_PAD1` / `PAD2` |
-| Ctrl modifier | Fn, set to Ctrl in Titan settings | modifier for rare binds |
 | Open / send chat | Enter (default, untouched) | full QWERTY types while the edit box has focus |
 
 With Shift and Alt layers, the action bar reaches 24 slots from 8 keys, pending the alt-collision check above (page 3 may move to Ctrl). Bindings fire only outside text entry, so chat keeps the whole keyboard; digits and symbols use alt+key.
@@ -140,10 +141,10 @@ With Shift and Alt layers, the action bar reaches 24 slots from 8 keys, pending 
 ### Journey walkthroughs (desk sim)
 
 Combat (spot, kill, loot):
-1. Gamepad mode keeps a reticle target on what the camera centers — `P` re-targets nearest hostile when needed.
+1. Gamepad mode keeps a reticle target on what the camera centers — `Sym` re-targets nearest hostile when needed.
 2. Abilities on YUIO/HJKL, pages by holding Shift/Alt. Bindings never change in combat; the addon re-applies on `PLAYER_REGEN_ENABLED` — same restriction Blizzard has.
 3. Reposition WASD/QE, jump Space (thumb), disengage S.
-4. Extra add: `P` again cycles hostiles.
+4. Extra add: `Sym` again cycles hostiles.
 5. Kill: `M` interact loots corpses and opens the interact tracker; focused loot activates with `B`. **Verify**: in gamepad mode loot flows through interact/PAD1.
 
 UI navigation (bags, vendor, quest turn-in, corpse run):
@@ -171,10 +172,11 @@ The keyboard registers 23 keys held at once, so key count limits no layout. Phas
 
 Open checks:
 
-- [ ] Space reaches apps. The rollover log contained no Space events; whether Space was pressed in that run is unconfirmed.
-- [ ] Shift and Alt reach apps as modifiers. The log had no Shift or Alt events.
-- [x] Sym reaches apps as Tab after reprogramming. It does not: pressed alone it produces nothing visible (measured, Nov 20 2026); targeting moved to the P key. It may still be a live keycode the IME simply ignores — `getevent` will settle it.
-- [ ] **alt layer = numbers/symbols (measured: alt+WER types digits).** Two consequences. (a) Chat digits and `/` likely come from **alt+key**, not sym+key. (b) Collision: with Alt held, YUIO/HJKL arrive as digit/symbol keysyms, so Alt cannot double as `GAMEPADRIGHTMOD` on the same physical reach — bar page 3 may need Ctrl (fn→Ctrl) instead, or pages via Shift only. Verify all of it in-world: what `getevent` shows for sym and alt; whether bare `SHIFT`/`ALT` are bindable names at all.
+- [x] Space reaches apps. Measured Nov 20 2026 (browser keyprobe: `Space k32` down/up). Jump is on.
+- [ ] Shift reaches apps as a modifier. The keyprobe logged alt (`AltRight k225`) but Shift has not been pressed on the probe yet.
+- [x] Sym mystery. Sym is not dead: it emits `KEYCODE_SYM` (browser sees key "Symbol", keyCode 0); no text character accompanies it, and sym+letter types the plain letter. It is usable the moment the launcher maps it (change 10). Sym+key gives no symbols, so digits/`/` come from the **alt** layer.
+- [x] fn as Ctrl modifier. Impossible: `fn` is system Home (measured — it leaves the app; browser never sees it). No physical Ctrl exists on the board; Ctrl-prefixed binds are out, Shift+Alt stacking replaces them.
+- [ ] Alt layer inside the game. alt is right Alt (AltGraph); alt+W/E/R typed `1/2/3` through the IME/browser path, with the keycode staying W/E/R. In WoW the key will arrive as keycode+Mod1, so bindings see `ALT-W` and chat typing may produce `w` rather than `1`. **Verify in-world**: if chat digits fail, options are an X-side AltGraph layer in the launcher, or clipboard-based input.
 - [ ] Do sym+key **combos** (sym+1 → `1`, sym+/ → `/`) deliver symbols and digits, or is the whole sym layer dead? Sym alone is dead (above), but layer combos may be firmware-level like Fn. If dead, chat commands and digits cannot be typed at all — fallback would be the launcher's on-screen keyboard or paste via `termux`/clipboard. This gates the chat journey.
 - [ ] Fn reprogrammed to Ctrl delivers real Ctrl to apps. Not yet checked.
 - [ ] DXVK 2.4.1 accepts the Mali driver through `Wrapper-gamenative`. Leegao's survey found Mali drivers report no `nullDescriptor` or `robustBufferAccess2`, which DXVK requires (sourced, [driver survey](https://gist.github.com/leegao/aab7d63423bfd43f7328430fe32d225e), [DXVK driver support](https://github.com/doitsujin/dxvk/wiki/Driver-support)). Whether the wrapper hides that gap is a guess.
