@@ -1,0 +1,7 @@
+## Title: Titan Forged
+## Notes: Unihertz Titan 2 keyboard bindings for the WoW Forever gamepad UI
+## Interface: 16001
+## SavedVariables: TitanForgedDB
+## Author: Daxiongmao87
+
+TitanForged.lua
