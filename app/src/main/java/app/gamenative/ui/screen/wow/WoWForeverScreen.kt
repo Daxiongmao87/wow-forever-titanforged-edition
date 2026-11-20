@@ -1327,10 +1327,12 @@ private fun containerConfig(gameRoot: File, gpu: GpuProfile, screenSize: String,
     val envVars = "WRAPPER_MAX_IMAGE_COUNT=0 ZINK_DESCRIPTORS=lazy ZINK_DEBUG=compact,deck_emu MESA_SHADER_CACHE_DISABLE=false MESA_SHADER_CACHE_MAX_SIZE=512MB mesa_glthread=true WINEESYNC=0 MESA_VK_WSI_PRESENT_MODE=mailbox ${tuDebugEnv}VKD3D_SHADER_MODEL=6_0 PULSE_LATENCY_MSEC=144 ${WowMachineIdentity.HOSTNAME_ENV}=${identity.computerName}$samsungEnv$debugDxvkLog$debugWrapperDiag"
     // The Mali profile's version=System skips adrenotools so the system Vulkan driver loads, and asks for
     // compute BCn emulation, which Mali needs because its driver has no BCn texture support.
+    // transcoder=gpu + quality=high (4x4 ASTC): the CPU transcoder rendered BCn textures as magenta noise
+    // on the Mali-G615 (login screen reached, all BCn-mapped surfaces corrupt).
     val driverConfig = if (gpu.usesTurnip)
         "version=${gpu.driver},adrenotoolsTurnip=1,resourceType=buffer,bcnEmulation=auto,quality=high"
     else
-        "version=${gpu.driver},bcnEmulation=auto,bcnEmulationType=compute,resourceType=buffer"
+        "version=${gpu.driver},bcnEmulation=auto,bcnEmulationType=compute,resourceType=buffer,transcoder=gpu,quality=high"
     return JSONObject().apply {
         put("id", CONTAINER_ID)
         put("name", "WoW Forever")
