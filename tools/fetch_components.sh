@@ -26,8 +26,8 @@ for f in "${FILES[@]}"; do
         elif [ "$f" = "wrapper-gamenative-20260724.tzst" ]; then
             curl -fL --retry 3 -o "$DEST/$f.part" "https://downloads.gamenative.app/graphics_driver/$f"
         elif [ "$f" = "libbcn_layer.so" ]; then
-            # Rehosted from The412Banner/WinlatorMali leegao_bcn.tzst on our own release (private repo, so use gh)
-            gh release download "${BCN_LAYER_RELEASE:-v2.4.6-titan19}" -R "${GH_REPO:-Daxiongmao87/wow-forever-titanforged-edition}" -p "$f" -D "$DEST"
+            # Rehosted from The412Banner/WinlatorMali leegao_bcn.tzst on our public assets repo
+            curl -fL --retry 3 -o "$DEST/$f.part" "https://github.com/Daxiongmao87/titanforged-components/releases/download/v1/$f"
         else
             curl -fL --retry 3 -o "$DEST/$f.part" "$RELEASE_URL/$f"
         fi
