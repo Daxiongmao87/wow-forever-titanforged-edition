@@ -158,14 +158,21 @@ public class Keyboard {
             // repeat timer is left off here so a held key isn't repeated twice, and a release
             // that never reaches us (e.g. focus moved mid-press) can't repeat a key forever.
             boolean syntheticShift = needsSyntheticShift(event);
+            // Unihertz Titan 2 alt layer: when the device's KeyCharacterMap turns alt+key into a different
+            // character, type that character as a clean keystroke. The injected Alt is released for the
+            // duration of the key so X/Wine see the symbol without Mod1, the way the IME path types it.
+            int altChar = altLayerChar(event);
+            XKeycode heldAlt = altChar != 0 ? pressedAltKeycode() : null;
+            if (heldAlt != null) xServer.injectKeyRelease(heldAlt);
             if (syntheticShift) xServer.injectKeyPress(XKeycode.KEY_SHIFT_L, 0, false);
-            int[] levels = keyLevels(event);
+            int[] levels = altChar != 0 ? new int[] {altChar, altChar} : keyLevels(event);
             if (levels != null) {
                 xServer.injectKeyPress(xKeycode, levels[0], levels[1], false);
             } else {
                 xServer.injectKeyPress(xKeycode, printableKeysym(event), false);
             }
             if (syntheticShift) xServer.injectKeyRelease(XKeycode.KEY_SHIFT_L);
+            if (heldAlt != null) xServer.injectKeyPress(heldAlt, 0, false);
         } else if (action == KeyEvent.ACTION_UP) {
             xServer.injectKeyRelease(xKeycode);
         }
@@ -198,6 +205,30 @@ public class Keyboard {
 
     private static int printable(int unicodeChar) {
         return unicodeChar > 32 && unicodeChar < 127 ? unicodeChar : 0;
+    }
+
+    /**
+     * The character the device's KeyCharacterMap assigns to this key with Alt (and Shift) held, or 0 when Alt
+     * does not change what the key types. Read from the same map the IME path uses, so inside the X server
+     * alt+key produces exactly the symbols it produces in other apps.
+     */
+    private static int altLayerChar(KeyEvent event) {
+        if (!event.isAltPressed()) return 0;
+        try {
+            android.view.KeyCharacterMap map = event.getKeyCharacterMap();
+            int base = printable(map.get(event.getKeyCode(), 0));
+            int meta = event.isShiftPressed() ? KeyEvent.META_ALT_ON | KeyEvent.META_SHIFT_ON : KeyEvent.META_ALT_ON;
+            int altChar = printable(map.get(event.getKeyCode(), meta));
+            return (altChar != 0 && altChar != base) ? altChar : 0;
+        } catch (RuntimeException e) {
+            return 0;
+        }
+    }
+
+    private XKeycode pressedAltKeycode() {
+        if (pressedKeys.contains(XKeycode.KEY_ALT_R.getId())) return XKeycode.KEY_ALT_R;
+        if (pressedKeys.contains(XKeycode.KEY_ALT_L.getId())) return XKeycode.KEY_ALT_L;
+        return null;
     }
 
     private static int printableKeysym(KeyEvent event) {

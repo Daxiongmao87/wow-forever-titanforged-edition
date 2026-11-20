@@ -23,7 +23,7 @@ local ACTIONS = {
     { id = "bar7",         label = "Action bar 7",        def = "K",      kind = "cmd",  cmd = "GAMEPADACTIONBUTTON7" },
     { id = "bar8",         label = "Action bar 8",        def = "L",      kind = "cmd",  cmd = "GAMEPADACTIONBUTTON8" },
     { id = "pageLeft",     label = "Bar page 2 (hold)",   def = "LSHIFT", kind = "cmd",  cmd = "GAMEPADLEFTMOD" },
-    { id = "pageRight",    label = "Bar page 3 (hold)",   def = "ALT",    kind = "cmd",  cmd = "GAMEPADRIGHTMOD" },
+    { id = "pageRight",    label = "Bar page 3 (hold, off: alt types symbols)", def = "", kind = "cmd", cmd = "GAMEPADRIGHTMOD" },
     { id = "uiFocus",      label = "Toggle UI focus",     def = "T",      kind = "cmd",  cmd = "TOGGLEUIFOCUS" },
     { id = "radial",       label = "Radial menu",         def = "R",      kind = "cmd",  cmd = "OPENRADIAL" },
     { id = "padLeft",      label = "UI d-pad left",       def = "Z",      kind = "pad",  pad = "PADDLEFT" },

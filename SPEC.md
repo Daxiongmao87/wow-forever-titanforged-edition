@@ -89,7 +89,7 @@ Phase 2 is an addon, TitanForged, that binds Titan 2 keys to WoW Forever's own g
 
 ### Key map (final)
 
-The map lives in one table in the addon's saved variables, editable through `/tfe`. Twitch actions sit on the two aligned right-hand rows; the whole bottom row is the UI-navigation strip, split by the centered spacebar. Titan 2 hardware notes (measured Nov 20 2026, browser keyprobe + product photo): dedicated `sym`/`fn`/`alt` keys on the function row; `sym` is **live** — it sends `KEYCODE_SYM`, which browsers show as key "Symbol"/keyCode 0 and the launcher's `Keyboard.java` currently drops; `alt` is right Alt (AltGraph); `fn` is system Home and never reaches apps (unusable); space reaches apps; digits/symbols come from the **alt+key** Android keymap (alt+W types `1` via the IME path); the sym key alone types nothing.
+The map lives in one table in the addon's saved variables, editable through `/tfe`. Twitch actions sit on the two aligned right-hand rows; the whole bottom row is the UI-navigation strip, split by the centered spacebar. Titan 2 hardware notes (measured Nov 20 2026, browser keyprobe + product photo): dedicated `sym`/`fn`/`alt` keys on the function row; `sym` is **live** — it sends `KEYCODE_SYM`, which browsers show as key "Symbol"/keyCode 0 and launcher change 10 maps to X Tab; `alt` is right Alt (AltGraph); `fn` is system Home and never reaches apps (unusable); space reaches apps; digits/symbols come from the **alt+key** Android keymap (`TitanKey.kcm`: alt+W types `1`) and, since launcher change 11, inside the game too; the sym key alone types nothing.
 
 | Action | Titan key | Bound to |
 | --- | --- | --- |
@@ -100,16 +100,15 @@ The map lives in one table in the addon's saved variables, editable through `/tf
 | Target nearest enemy | Sym (launcher maps `KEYCODE_SYM` to X Tab — launcher change 10) | `TARGETNEARESTENEMY` |
 | Interact | M (right thumb, next to space) | `INTERACTTARGET` |
 | Gamepad action bar 1-8 | Y U I O / H J K L | `GAMEPADACTIONBUTTON1`-`8` |
-| Bar layer 2 / layer 3 | Shift / Alt (held) | `GAMEPADLEFTMOD` / `GAMEPADRIGHTMOD` |
+| Bar layer 2 | Shift (held) | `GAMEPADLEFTMOD` — Alt is the symbol layer (launcher change 11), so there is no Alt layer |
 | Spare ability or macro | G / P (both free) | user choice |
 | UI focus on / off | T | `TOGGLEUIFOCUS` |
 | Radial menu | R | `OPENRADIAL` |
 | UI left / down / up / right | Z / X / C / V | click `InputFunctionBindingButton_PADDLEFT` / `PADDDOWN` / `PADDUP` / `PADDRIGHT` |
-| Rare binds (4th layer) | Shift+Alt stacked (`ALT-SHIFT-key`) | utility/stance/macro binds |
 | UI confirm / back | B / N | click `InputFunctionBindingButton_PAD1` / `PAD2` |
 | Open / send chat | Enter (default, untouched) | full QWERTY types while the edit box has focus |
 
-With Shift and Alt layers, the action bar reaches 24 slots from 8 keys, pending the alt-collision check above (page 3 may move to Ctrl). Bindings fire only outside text entry, so chat keeps the whole keyboard; digits and symbols use alt+key.
+With the Shift layer, the action bar reaches 16 slots from 8 keys. Alt+key types digits, `/`, `*` and the other symbols from `TitanKey.kcm` everywhere including inside the game (launcher change 11), so chat slash commands work. Bindings fire only outside text entry, so chat keeps the whole keyboard.
 
 ### Addon rules
 
@@ -176,7 +175,7 @@ Open checks:
 - [ ] Shift reaches apps as a modifier. The keyprobe logged alt (`AltRight k225`) but Shift has not been pressed on the probe yet.
 - [x] Sym mystery. Sym is not dead: it emits `KEYCODE_SYM` (browser sees key "Symbol", keyCode 0); no text character accompanies it, and sym+letter types the plain letter. It is usable the moment the launcher maps it (change 10). Sym+key gives no symbols, so digits/`/` come from the **alt** layer.
 - [x] fn as Ctrl modifier. Impossible: `fn` is system Home (measured — it leaves the app; browser never sees it). No physical Ctrl exists on the board; Ctrl-prefixed binds are out, Shift+Alt stacking replaces them.
-- [ ] Alt layer inside the game. alt is right Alt (AltGraph); alt+W/E/R typed `1/2/3` through the IME/browser path, with the keycode staying W/E/R. **Confirmed broken in WoW (measured Nov 20 2026)**: the X path delivers keycode+Mod1, so alt+letter cannot type symbols in-game — slash commands are blocked, which gates `/tfe` and chat commands. Planned launcher change 11: map ALT_R to X `ISO_Level3_Shift` (Mod5) and add the third-level keysyms from `TitanKey.kcm` (pulled from `/system/usr/keychars/`), giving correct in-game symbol typing; the cost is losing Alt as `GAMEPADRIGHTMOD` (bar page 3 becomes Shift+Alt-stacked or Shift-only). Until then `tools/tfe_type.py` injects secrets via `adb input text` %XX escaping (works in any field, including the launcher's sign-in dialog whose hardware-keyboard input is also unreliable on this device).
+- [x] Alt layer inside the game — **fixed by launcher change 11 (titan22, 273)**. alt is right Alt (AltGraph); its symbol layer (`TitanKey.kcm`) only reached apps through the Android IME, never through the X path, which sent keycode+Mod1. Now `Keyboard.onKeyEvent` reads the event's own `KeyCharacterMap` alt(+shift) column (`altLayerChar`); when it yields a different printable char, the injected Alt is released around the keypress and the char is injected as both keymap levels — the same live-keymap-rewrite mechanism the synthetic-Shift path uses (`InputDeviceManager.onKeyPress` → `setKeysyms` + `MappingNotify`), so Wine types it verbatim. Cost (measured behavior, **sourced** from the mechanism): alt+symbol-mapped key no longer arrives as `ALT-<letter>`, so Alt cannot be the `GAMEPADRIGHTMOD` page modifier on those keys; bar pages move to Shift-based stacking, to be finalized in-world.
 - [ ] Do sym+key **combos** (sym+1 → `1`, sym+/ → `/`) deliver symbols and digits, or is the whole sym layer dead? Sym alone is dead (above), but layer combos may be firmware-level like Fn. If dead, chat commands and digits cannot be typed at all — fallback would be the launcher's on-screen keyboard or paste via `termux`/clipboard. This gates the chat journey.
 - [ ] Fn reprogrammed to Ctrl delivers real Ctrl to apps. Not yet checked.
 - [ ] DXVK 2.4.1 accepts the Mali driver through `Wrapper-gamenative`. Leegao's survey found Mali drivers report no `nullDescriptor` or `robustBufferAccess2`, which DXVK requires (sourced, [driver survey](https://gist.github.com/leegao/aab7d63423bfd43f7328430fe32d225e), [DXVK driver support](https://github.com/doitsujin/dxvk/wiki/Driver-support)). Whether the wrapper hides that gap is a guess.
