@@ -10,6 +10,7 @@ FILES=(
     turnip-wow-scheduler-test.zip
     turnip-V32-RP6sched.zip
     wrapper-gamenative-20260724.tzst
+    libbcn_layer.so
 )
 
 mkdir -p "$DEST"
@@ -24,6 +25,9 @@ for f in "${FILES[@]}"; do
             curl -fL --retry 3 -o "$DEST/$f.part" "https://raw.githubusercontent.com/arusiasotto/wow-forever-a840/main/driver/turnip-V32-RP6sched.zip"
         elif [ "$f" = "wrapper-gamenative-20260724.tzst" ]; then
             curl -fL --retry 3 -o "$DEST/$f.part" "https://downloads.gamenative.app/graphics_driver/$f"
+        elif [ "$f" = "libbcn_layer.so" ]; then
+            # Rehosted from The412Banner/WinlatorMali leegao_bcn.tzst on our own release (private repo, so use gh)
+            gh release download "${BCN_LAYER_RELEASE:-v2.4.6-titan19}" -R "${GH_REPO:-Daxiongmao87/wow-forever-titanforged-edition}" -p "$f" -D "$DEST"
         else
             curl -fL --retry 3 -o "$DEST/$f.part" "$RELEASE_URL/$f"
         fi

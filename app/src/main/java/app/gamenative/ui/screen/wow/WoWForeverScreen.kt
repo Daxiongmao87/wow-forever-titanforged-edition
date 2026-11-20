@@ -1200,6 +1200,8 @@ private const val MALI_DRIVER = "System"
 private const val WRAPPER_ADRENO = "Wrapper"
 private const val WRAPPER_GAMENATIVE = "wrapper-gamenative"
 private const val WRAPPER_GAMENATIVE_ASSET = "wrapper-gamenative-20260724.tzst"
+private const val BCN_LAYER_ASSET = "libbcn_layer.so"
+private const val BCN_LAYER_SIZE = 16910192L
 private const val PROTON_VERSION = "proton-11.0-90624-arm64ec"
 private const val DXVK_VERSION = "2.4.1-wow-aarch64-test"
 
@@ -1466,6 +1468,7 @@ private fun installBundledComponents(context: Context, onStatus: (String) -> Uni
     }
 
     ImageFsInstaller.ensureBionicLib(context, ImageFs.find(context).rootDir)
+    installBcnLayer(context, onStatus)
     ContentsManager(context).syncContents()
 }
 
@@ -1494,6 +1497,26 @@ private fun installWrapperGamenative(context: Context, onStatus: (String) -> Uni
     } catch (e: Exception) {
         cacheFile.delete()
         Timber.e(e, "Error installing bundled $WRAPPER_GAMENATIVE_ASSET; first use will need internet to download it")
+    }
+}
+
+// The imagefs ships an old leegao libbcn_layer.so whose decode renders as noise on Mali. Replace it
+// with the rehosted Fcharan build (WinlatorMali leegao_bcn.tzst), which decodes correctly when forced
+// to transcode to ASTC (see spec Field findings). Checked on every launch so a re-extracted imagefs heals.
+private fun installBcnLayer(context: Context, onStatus: (String) -> Unit) {
+    val rootDir = ImageFs.find(context).rootDir
+    if (!rootDir.exists()) return
+    val target = File(rootDir, "usr/lib/$BCN_LAYER_ASSET")
+    if (target.exists() && target.length() == BCN_LAYER_SIZE) return
+    onStatus("Installing the BCn decode layer...")
+    try {
+        target.parentFile?.mkdirs()
+        context.assets.open("bundled_components/$BCN_LAYER_ASSET").use { input ->
+            target.outputStream().use { output -> input.copyTo(output) }
+        }
+    } catch (e: Exception) {
+        target.delete()
+        Timber.e(e, "Error installing bundled $BCN_LAYER_ASSET; BCn textures will render corrupted on Mali")
     }
 }
 
