@@ -88,26 +88,27 @@ Phase 2 is an addon, TitanForged, that binds Titan 2 keys to WoW Forever's own g
 
 ### Proposed key map
 
-The map lives in one table in the addon's saved variables, editable through `/tfe`. Twitch actions sit on bare letters; slow UI actions sit on the left cluster.
+The map lives in one table in the addon's saved variables, editable through `/tfe`. Twitch actions sit on the two aligned right-hand rows; the whole bottom row is the UI-navigation strip, split by the centered spacebar. Titan 2 hardware notes (measured, product photo + on-device): dedicated `sym`/`fn`/`alt` keys on the function row, space between V and B, enter and backspace are physical keys, digits and `/` only on the sym layer, and **the sym key delivers nothing to apps**.
 
 | Action | Titan key | Bound to |
 | --- | --- | --- |
 | Move forward / back | W / S | `MOVEFORWARD` / `MOVEBACKWARD` |
 | Turn left / right | A / D | `TURNLEFT` / `TURNRIGHT` |
 | Strafe left / right | Q / E | `STRAFELEFT` / `STRAFERIGHT` |
-| Jump | Space | `JUMP` |
-| Target nearest enemy | Sym, set to Tab in Titan settings | `TARGETNEARESTENEMY` |
-| Interact | F | `INTERACTTARGET` |
-| Gamepad action bar 1-8 | U I O P J K L M | `GAMEPADACTIONBUTTON1`-`8` |
+| Jump | Space (mid-board, either thumb) | `JUMP` |
+| Target nearest enemy | P (right pinky) | `TARGETNEARESTENEMY` |
+| Interact | M (right thumb, next to space) | `INTERACTTARGET` |
+| Gamepad action bar 1-8 | Y U I O / H J K L | `GAMEPADACTIONBUTTON1`-`8` |
 | Bar layer 2 / layer 3 | Shift / Alt (held) | `GAMEPADLEFTMOD` / `GAMEPADRIGHTMOD` |
-| Spare ability or macro | N | user choice |
+| Spare ability or macro | G (F free too) | user choice |
 | UI focus on / off | T | `TOGGLEUIFOCUS` |
 | Radial menu | R | `OPENRADIAL` |
 | UI left / down / up / right | Z / X / C / V | click `InputFunctionBindingButton_PADDLEFT` / `PADDDOWN` / `PADDUP` / `PADDRIGHT` |
-| UI confirm / back | B / G | click `InputFunctionBindingButton_PAD1` / `PAD2` |
+| UI confirm / back | B / N | click `InputFunctionBindingButton_PAD1` / `PAD2` |
 | Ctrl modifier | Fn, set to Ctrl in Titan settings | modifier for rare binds |
+| Open / send chat | Enter (default, untouched) | full QWERTY types while the edit box has focus |
 
-With Shift and Alt layers, the action bar reaches 24 slots from 8 keys.
+With Shift and Alt layers, the action bar reaches 24 slots from 8 keys. Bindings fire only outside text entry, so chat keeps the whole keyboard; symbols and digits need sym+key.
 
 ### Addon rules
 
@@ -144,7 +145,8 @@ Open checks:
 
 - [ ] Space reaches apps. The rollover log contained no Space events; whether Space was pressed in that run is unconfirmed.
 - [ ] Shift and Alt reach apps as modifiers. The log had no Shift or Alt events.
-- [ ] Sym and Fn deliver Tab and Ctrl after reprogramming them in Titan settings.
+- [x] Sym reaches apps as Tab after reprogramming. It does not: the sym key produces no keycode apps can see (measured, Nov 20 2026); targeting moved to the P key.
+- [ ] Fn reprogrammed to Ctrl delivers real Ctrl to apps. Not yet checked.
 - [ ] DXVK 2.4.1 accepts the Mali driver through `Wrapper-gamenative`. Leegao's survey found Mali drivers report no `nullDescriptor` or `robustBufferAccess2`, which DXVK requires (sourced, [driver survey](https://gist.github.com/leegao/aab7d63423bfd43f7328430fe32d225e), [DXVK driver support](https://github.com/doitsujin/dxvk/wiki/Driver-support)). Whether the wrapper hides that gap is a guess.
 - [ ] The game's interface style stays on gamepad while keyboard keys are pressed. The Lua side only switches on the `InputDeviceInterfaceStyle` CVar (`Blizzard_SettingsDefinitions_Shared/Gamepad.lua:285`), measured; the engine side is unseen.
 
