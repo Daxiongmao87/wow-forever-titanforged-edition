@@ -1313,7 +1313,9 @@ private fun prepareLaunch(context: Context, gameRoot: File, gpu: GpuProfile, scr
 
 private fun containerConfig(gameRoot: File, gpu: GpuProfile, screenSize: String, identity: WowMachineIdentity): JSONObject {
     // The debug DXVK log lands in a folder on G:, the game drive, so a file manager can open it without adb.
-    val debugDxvkLog = if (BuildConfig.DEBUG) " DXVK_LOG_LEVEL=info DXVK_LOG_PATH=G:\\dxvk-logs" else ""
+    // Backslash paths are eaten by the container env parser ("G:\dxvk-logs" ->
+    // "G:dxvk-logs"), so use forward slashes; Wine normalizes them.
+    val debugDxvkLog = if (BuildConfig.DEBUG) " DXVK_LOG_LEVEL=info DXVK_LOG_PATH=G:/dxvk-logs" else ""
     val samsungEnv = if (gpu.usesTurnip && Build.MANUFACTURER.equals("samsung", ignoreCase = true)) " FD_DEV_FEATURES=enable_tp_ubwc_flag_hint=1" else ""
     val tuDebugEnv = if (gpu.tuDebug.isEmpty()) "" else "TU_DEBUG=${gpu.tuDebug} "
     val envVars = "WRAPPER_MAX_IMAGE_COUNT=0 ZINK_DESCRIPTORS=lazy ZINK_DEBUG=compact,deck_emu MESA_SHADER_CACHE_DISABLE=false MESA_SHADER_CACHE_MAX_SIZE=512MB mesa_glthread=true WINEESYNC=0 MESA_VK_WSI_PRESENT_MODE=mailbox ${tuDebugEnv}VKD3D_SHADER_MODEL=6_0 PULSE_LATENCY_MSEC=144 ${WowMachineIdentity.HOSTNAME_ENV}=${identity.computerName}$samsungEnv$debugDxvkLog"
