@@ -4854,7 +4854,10 @@ private suspend fun extractGraphicsDriverFiles(
         if (envVars.get("ENABLE_BCN_COMPUTE") == "1") {
             envVars.put("BCN_TRANSCODE_TO_ASTC", "1")
             envVars.put("BCN_LAYER_LOG_LEVEL", "info")
-            envVars.put("BCN_ADD_WATERMARK", "1")
+            // The loader's implicit-layer scan hits <rootDir>/usr/etc/vulkan/implicit_layer.d, which the
+            // imagefs does not ship, so the BCn manifest in usr/share is never found. Point the loader at
+            // the share dir explicitly.
+            envVars.put("VK_ADD_IMPLICIT_LAYER_PATH", imageFs.getRootDir().getPath() + "/usr/share/vulkan/implicit_layer.d")
         }
 
         val bcnEmulationCache = graphicsDriverConfig.get("bcnEmulationCache")
