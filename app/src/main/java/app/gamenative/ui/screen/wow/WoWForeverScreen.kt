@@ -1318,7 +1318,10 @@ private fun containerConfig(gameRoot: File, gpu: GpuProfile, screenSize: String,
     val debugDxvkLog = if (BuildConfig.DEBUG) " DXVK_LOG_LEVEL=info DXVK_LOG_PATH=G:/dxvk-logs" else ""
     // libvulkan_wrapper strings show WRAPPER_DIAG / WRAPPER_LOG_LEVEL / WRAPPER_LOG_FILE; on the Mali
     // (wrapper) path the game dies silently after swapchain creation, so capture wrapper telemetry to G:.
-    val debugWrapperDiag = if (BuildConfig.DEBUG && !gpu.usesTurnip) " WRAPPER_DIAG=1 WRAPPER_LOG_LEVEL=verbose WRAPPER_LOG_FILE=G:/wrapper.log" else ""
+    // WRAPPER_NO_PATCH_OPCONSTCOMP skips the wrapper's SPIR-V OPConstantComposite patch pass; upstream
+    // sets it for dxvk builds where that pass breaks shader creation (XServerScreen.kt:4713). Wine-debug
+    // shows our crash is an AV inside the wrapper during vkCreateShaderModule/vkCreateComputePipelines.
+    val debugWrapperDiag = if (BuildConfig.DEBUG && !gpu.usesTurnip) " WRAPPER_DIAG=1 WRAPPER_LOG_LEVEL=verbose WRAPPER_LOG_FILE=G:/wrapper.log WRAPPER_NO_PATCH_OPCONSTCOMP=1" else ""
     val samsungEnv = if (gpu.usesTurnip && Build.MANUFACTURER.equals("samsung", ignoreCase = true)) " FD_DEV_FEATURES=enable_tp_ubwc_flag_hint=1" else ""
     val tuDebugEnv = if (gpu.tuDebug.isEmpty()) "" else "TU_DEBUG=${gpu.tuDebug} "
     val envVars = "WRAPPER_MAX_IMAGE_COUNT=0 ZINK_DESCRIPTORS=lazy ZINK_DEBUG=compact,deck_emu MESA_SHADER_CACHE_DISABLE=false MESA_SHADER_CACHE_MAX_SIZE=512MB mesa_glthread=true WINEESYNC=0 MESA_VK_WSI_PRESENT_MODE=mailbox ${tuDebugEnv}VKD3D_SHADER_MODEL=6_0 PULSE_LATENCY_MSEC=144 ${WowMachineIdentity.HOSTNAME_ENV}=${identity.computerName}$samsungEnv$debugDxvkLog$debugWrapperDiag"
