@@ -4847,6 +4847,16 @@ private suspend fun extractGraphicsDriverFiles(
             else -> envVars.put("WRAPPER_EMULATE_BCN", "1")
         }
 
+        // The BCn layer (VK_LAYER_BCN_BCnLayer, enabled by ENABLE_BCN_COMPUTE=1 above) sits above the
+        // wrapper ICD. In auto mode it probes the wrapper, sees its advertised BCn emulation, and passes
+        // BCn through untouched — leaving every BCn texture to the wrapper's broken on-Mali transcoder.
+        // Forcing BCN_TRANSCODE_TO_ASTC makes the layer itself decode BCn->ASTC (Mali-native) instead.
+        if (envVars.get("ENABLE_BCN_COMPUTE") == "1") {
+            envVars.put("BCN_TRANSCODE_TO_ASTC", "1")
+            envVars.put("BCN_LAYER_LOG_LEVEL", "info")
+            envVars.put("BCN_ADD_WATERMARK", "1")
+        }
+
         val bcnEmulationCache = graphicsDriverConfig.get("bcnEmulationCache")
         envVars.put("WRAPPER_USE_BCN_CACHE", bcnEmulationCache)
 
