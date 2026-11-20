@@ -148,7 +148,7 @@ UI navigation (bags, vendor, quest turn-in, corpse run):
 Chat:
 1. `Enter` opens the edit box; all bindings are suppressed while it has focus, so the full QWERTY types.
 2. Digits, `!`, `/` come from the sym layer combos.
-3. `Enter` sends. Closing is Escape = the hardware back key, because `N` types `n` there. **Verify**: launcher maps Android BACK to Escape.
+3. `Enter` sends; `Enter` again on the empty box closes it (WoW default), so chat needs no Escape. Hardware back stays app-level — `MainActivity.kt:224` consumes it for launcher navigation/session exit (measured). B/N are bindings, suppressed during text entry, so they cannot close the box. A Titan-remapped ESC key would be a bonus for menus, not a requirement.
 4. Channels via `sym+/` then `s`/`g`/`p`.
 
 ## Measurements and open unknowns
