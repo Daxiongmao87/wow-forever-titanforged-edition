@@ -116,8 +116,12 @@ With Shift and Alt layers, the action bar reaches 24 slots from 8 keys. Bindings
 - The hidden buttons are created lazily, the first time Blizzard binds that pad key (`GetOrCreateInputFunctionBindingButton`, a local function), measured. The addon re-checks for each button on `UPDATE_BINDINGS` and binds it once it exists.
 - Never overwrite Blizzard's `GAMEPAD_*` globals; that would taint secure code.
 - Own bindings via `SetOverrideBinding` on the addon's own frame, so disabling the addon restores the user's normal binds.
+- On login, force the gamepad interface style (the `InputDeviceInterfaceStyle` cvar, spec:139), since with no controller attached the client would otherwise sit in mouse mode and the `PAD*` machinery would be asleep. **Verify** the exact cvar/command that sticks.
 
 ### Packaging
+
+- **Split: addon carries the key map; the APK only ships it.** The APK does no key translation — it cannot know when WoW's edit box has focus, and a launcher-level remap of e.g. `B` would break chat typing. The launcher already fixes physical-keyboard detection (Phase 1 change 8, done) and installs the addon zip through its Add-on button, measured. Titan keys that never reach apps (`sym`, recent-apps, home) stay unusable by either layer; hardware back stays app-level (measured, `MainActivity.kt:224`).
+- The addon shows an on-screen key map help panel (PNG letter art over a dimmed backdrop), toggled by a bindable key, default **F**, since `sym` is dead (measured). The panel content generates itself from the saved-variables table so it never drifts from the real map.
 
 - Ship as a zip the launcher installs through its existing Add-on button (README, Controls section), measured.
 - The `.toc` needs WoW Forever's interface number. The Blizzard tocs in the `forever` branch carry `## Interface: 0` (measured), so read the real value in game with `/dump select(4, GetBuildInfo())`.
