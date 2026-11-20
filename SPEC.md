@@ -130,6 +130,27 @@ With Shift and Alt layers, the action bar reaches 24 slots from 8 keys. Bindings
 - [ ] Bindings survive a /reload and a combat session.
 - [ ] Disabling the addon returns the default keybinds.
 
+### Journey walkthroughs (desk sim)
+
+Combat (spot, kill, loot):
+1. Gamepad mode keeps a reticle target on what the camera centers — `P` re-targets nearest hostile when needed.
+2. Abilities on YUIO/HJKL, pages by holding Shift/Alt. Bindings never change in combat; the addon re-applies on `PLAYER_REGEN_ENABLED` — same restriction Blizzard has.
+3. Reposition WASD/QE, jump Space (thumb), disengage S.
+4. Extra add: `P` again cycles hostiles.
+5. Kill: `M` interact loots corpses and opens the interact tracker; focused loot activates with `B`. **Verify**: in gamepad mode loot flows through interact/PAD1.
+
+UI navigation (bags, vendor, quest turn-in, corpse run):
+1. `T` enters UI focus; `Z X C V` move (per-screen handlers via the hidden buttons), `B` activate, `N` back, `R` radial for context options.
+2. Bags: gamepads open them with PAD3 — no key currently clicks `InputFunctionBindingButton_PAD3`. **Gap: assign a spare (G) and verify PAD3 = bags** in the forever build.
+3. Vendor: `M` interact on the NPC, columns on `Z X`, item on `B` (PAD1), currency/quantity steppers by repeated `B`/`N`.
+4. Quest turn-in and gossip: highlight with the d-pad, confirm `B`. Corpse release and graveyard follow the same pattern.
+
+Chat:
+1. `Enter` opens the edit box; all bindings are suppressed while it has focus, so the full QWERTY types.
+2. Digits, `!`, `/` come from the sym layer combos.
+3. `Enter` sends. Closing is Escape = the hardware back key, because `N` types `n` there. **Verify**: launcher maps Android BACK to Escape.
+4. Channels via `sym+/` then `s`/`g`/`p`.
+
 ## Measurements and open unknowns
 
 The keyboard registers 23 keys held at once, so key count limits no layout. Phase 2 still has three open checks.
