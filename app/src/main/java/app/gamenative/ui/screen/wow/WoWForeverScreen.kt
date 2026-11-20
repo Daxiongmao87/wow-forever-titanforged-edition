@@ -1321,7 +1321,7 @@ private fun containerConfig(gameRoot: File, gpu: GpuProfile, screenSize: String,
     // WRAPPER_NO_PATCH_OPCONSTCOMP skips the wrapper's SPIR-V OPConstantComposite patch pass; upstream
     // sets it for dxvk builds where that pass breaks shader creation (XServerScreen.kt:4713). Wine-debug
     // shows our crash is an AV inside the wrapper during vkCreateShaderModule/vkCreateComputePipelines.
-    val debugWrapperDiag = if (BuildConfig.DEBUG && !gpu.usesTurnip) " WRAPPER_DIAG=1 WRAPPER_LOG_LEVEL=verbose WRAPPER_LOG_FILE=G:/wrapper.log WRAPPER_NO_PATCH_OPCONSTCOMP=1 WRAPPER_DISABLE_PLACED=1 WRAPPER_MARK_BCN=1" else ""
+    val debugWrapperDiag = if (BuildConfig.DEBUG && !gpu.usesTurnip) " WRAPPER_DIAG=1 WRAPPER_LOG_LEVEL=verbose WRAPPER_LOG_FILE=G:/wrapper.log WRAPPER_NO_PATCH_OPCONSTCOMP=1 WRAPPER_DISABLE_PLACED=1" else ""
     val samsungEnv = if (gpu.usesTurnip && Build.MANUFACTURER.equals("samsung", ignoreCase = true)) " FD_DEV_FEATURES=enable_tp_ubwc_flag_hint=1" else ""
     val tuDebugEnv = if (gpu.tuDebug.isEmpty()) "" else "TU_DEBUG=${gpu.tuDebug} "
     val envVars = "WRAPPER_MAX_IMAGE_COUNT=0 ZINK_DESCRIPTORS=lazy ZINK_DEBUG=compact,deck_emu MESA_SHADER_CACHE_DISABLE=false MESA_SHADER_CACHE_MAX_SIZE=512MB mesa_glthread=true WINEESYNC=0 MESA_VK_WSI_PRESENT_MODE=mailbox ${tuDebugEnv}VKD3D_SHADER_MODEL=6_0 PULSE_LATENCY_MSEC=144 ${WowMachineIdentity.HOSTNAME_ENV}=${identity.computerName}$samsungEnv$debugDxvkLog$debugWrapperDiag"
@@ -1332,7 +1332,7 @@ private fun containerConfig(gameRoot: File, gpu: GpuProfile, screenSize: String,
     val driverConfig = if (gpu.usesTurnip)
         "version=${gpu.driver},adrenotoolsTurnip=1,resourceType=buffer,bcnEmulation=auto,quality=high"
     else
-        "version=${gpu.driver},bcnEmulation=auto,bcnEmulationType=compute,resourceType=buffer,transcoder=gpu,quality=high"
+        "version=${gpu.driver},bcnEmulation=full,bcnEmulationType=compute,resourceType=buffer,transcoder=gpu,quality=high"
     return JSONObject().apply {
         put("id", CONTAINER_ID)
         put("name", "WoW Forever")
