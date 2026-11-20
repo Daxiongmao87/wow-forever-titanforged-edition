@@ -9,6 +9,7 @@ Fork of [jaredgei/wow-forever-android](https://github.com/jaredgei/wow-forever-a
 - Fork lives at `Daxiongmao87/wow-forever-titanforged-edition` (private, origin); upstream is remote `upstream`. Work branch: `titan-forged` (main = pristine upstream baseline 83cdbc9).
 - `.github/workflows/test-build.yml` builds the debug-signed release APK (`assembleModernRelease`, no keystore needed) on push to `titan-forged` and uploads artifact `wow-forever-titan-apk`. Trigger/watch with `gh run list` / `gh run download`.
 - Phase 1 launcher changes are implemented (Mali profile, wrapper-gamenative bundling, built-in-keyboard fix, fork applicationId `app.wowforever.titanforged`, versionName `2.4.6-titan1`). Phase 2 addon not started.
+- Titan 2 reaches a clean login screen as of `v2.4.6-titan20`. Three must-have wrapper knobs for Mali: `WRAPPER_NO_PATCH_OPCONSTCOMP=1` (shader-patch AV), `WRAPPER_DISABLE_PLACED=1` (dynamic-texture corruption), plus the bundled BCn Vulkan layer (`libbcn_layer.so` asset, rehosted in the public `Daxiongmao87/titanforged-components` release v1; installed into imagefs `usr/lib` on app start via `installBcnLayer`, found via `VK_ADD_IMPLICIT_LAYER_PATH`). See SPEC.md "Field findings".
 - The `gh` token needed `gh auth refresh -h github.com -s workflow` once to allow pushing `.github/workflows/*` (done Nov 19 2026).
 - Phase 1 = Mali GPU profile in the launcher. Phase 2 = in-game addon `TitanForged` (keyboard -> gamepad-UI bindings). Phase 2 depends on the Phase 1 launcher keyboard fix (spec change 8).
 
