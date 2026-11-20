@@ -227,6 +227,8 @@ public class Keyboard {
         keycodeMap[KeyEvent.KEYCODE_ALT_LEFT] = XKeycode.KEY_ALT_L;
         keycodeMap[KeyEvent.KEYCODE_ALT_RIGHT] = XKeycode.KEY_ALT_R;
         keycodeMap[KeyEvent.KEYCODE_TAB] = XKeycode.KEY_TAB;
+        // Unihertz Titan 2: the `sym` key sends KEYCODE_SYM, which is otherwise dropped; map it to Tab.
+        keycodeMap[KeyEvent.KEYCODE_SYM] = XKeycode.KEY_TAB;
         keycodeMap[KeyEvent.KEYCODE_SPACE] = XKeycode.KEY_SPACE;
         keycodeMap[KeyEvent.KEYCODE_A] = XKeycode.KEY_A;
         keycodeMap[KeyEvent.KEYCODE_B] = XKeycode.KEY_B;
