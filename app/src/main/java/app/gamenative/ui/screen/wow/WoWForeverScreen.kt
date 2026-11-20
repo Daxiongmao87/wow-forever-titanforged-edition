@@ -1334,7 +1334,7 @@ private fun containerConfig(gameRoot: File, gpu: GpuProfile, screenSize: String,
     val driverConfig = if (gpu.usesTurnip)
         "version=${gpu.driver},adrenotoolsTurnip=1,resourceType=buffer,bcnEmulation=auto,quality=high"
     else
-        "version=${gpu.driver},bcnEmulation=full,bcnEmulationType=compute,resourceType=buffer,bcnEmulationCache=0,transcoder=gpu,quality=high"
+        "version=${gpu.driver},bcnEmulation=auto,bcnEmulationType=compute,resourceType=buffer,bcnEmulationCache=0,transcoder=gpu,quality=high"
     return JSONObject().apply {
         put("id", CONTAINER_ID)
         put("name", "WoW Forever")
